@@ -1,4 +1,4 @@
-# air_quality_weather_pipeline
+# OpenSky_Aviation_Track_pipeline
 
 End-to-end pipeline joining historical OpenAQ air-quality data with live OpenSky Network flight-tracking data,
 so the dashboard can relate air traffic activity to pollution (flight counts, altitude and speed
