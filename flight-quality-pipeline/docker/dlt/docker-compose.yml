@@ -1,0 +1,16 @@
+services:
+  dlt-openaq:
+    build:
+      context: ../..
+      dockerfile: docker/dlt/Dockerfile
+    container_name: dlt-openaq
+    env_file:
+      - ../../.env
+    volumes:
+      - ../../credentials:/credentials:ro
+    networks:
+      - pipeline_net
+
+networks:
+  pipeline_net:
+    external: true

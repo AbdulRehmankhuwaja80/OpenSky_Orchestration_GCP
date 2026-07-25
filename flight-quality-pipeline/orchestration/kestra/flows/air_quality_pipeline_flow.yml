@@ -1,0 +1,54 @@
+id: air_quality_pipeline
+namespace: air.quality.data.pipeline
+
+triggers:
+  - id: daily_run
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "*/10 * * * *"
+
+tasks:
+  - id: run_openaq_ingestion
+    type: io.kestra.plugin.scripts.shell.Commands
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+    commands:
+      - cd "$PROJECT_DIR" && docker compose -f docker/dlt/docker-compose.yml up --build
+
+  - id: bronze_to_silver
+    type: io.kestra.plugin.scripts.shell.Commands
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+    commands:
+      - cd "$PROJECT_DIR" && docker compose -f docker/spark/docker-compose.yml run --rm spark-batch spark-submit --master local[*] --jars /app/jars/gcs-connector-hadoop3-2.2.19.jar --conf spark.hadoop.fs.gs.impl=com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem --conf spark.hadoop.fs.AbstractFileSystem.gs.impl=com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS /app/transformation/spark_jobs/bronze_to_silver.py
+
+  - id: silver_to_bigquery
+    type: io.kestra.plugin.scripts.shell.Commands
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+    commands:
+      - cd "$PROJECT_DIR" && docker compose -f docker/spark/docker-compose.yml run --rm spark-batch spark-submit --master local[*] --packages com.google.cloud.spark:spark-3.5-bigquery:0.44.1 --jars /app/jars/gcs-connector-hadoop3-2.2.19.jar --conf spark.hadoop.fs.gs.impl=com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem --conf spark.hadoop.fs.AbstractFileSystem.gs.impl=com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS /app/transformation/spark_jobs/silver_to_bigquery.py
+
+  - id: dbt_run
+    type: io.kestra.plugin.scripts.shell.Commands
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+    commands:
+      - cd "$PROJECT_DIR" && docker compose -f docker/dbt/docker-compose.yml up --build
+
+
+
+
+# Single combined flow running the OpenAQ batch pipeline (ingestion -> transform -> load -> dbt)
+# as sequential tasks in one flow, instead of chaining 4 separate flows via Flow-trigger
+# preconditions - avoids cross-flow import ordering entirely. Import via Flows -> Create in the
+# Kestra UI. Requires the `docker` CLI inside the Kestra container (see docker/kestra/Dockerfile)
+# and the whole project mounted at the path pointed to by $PROJECT_DIR (an env var set in
+# docker/kestra/docker-compose.yml - see the comment there) so the `docker compose -f docker/...`
+# paths resolve AND so those nested compose invocations' own relative volume mounts (e.g. dlt's
+# `../../credentials:/credentials:ro`) resolve to real host paths instead of empty
+# auto-created directories.
+#
+# The OpenSky streaming leg (producer -> Kafka -> consumer -> GCS) runs continuously outside
+# this flow, started independently via `docker compose up -d` (see docker/opensky-producer
+# and docker/opensky-consumer) - the bronze_to_silver/silver_to_bigquery tasks above already
+# pick up whatever OpenSky data has landed in bronze/ by the time this flow runs.

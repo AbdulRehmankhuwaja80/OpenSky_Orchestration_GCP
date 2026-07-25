@@ -1,0 +1,59 @@
+services:
+  kestra-postgres:
+    image: postgres:15
+    container_name: kestra-postgres
+    environment:
+      POSTGRES_DB: kestra
+      POSTGRES_USER: kestra
+      POSTGRES_PASSWORD: k3str4
+    volumes:
+      - kestra_postgres_data:/var/lib/postgresql/data
+    networks:
+      - pipeline_net
+
+  kestra:
+    build:
+      context: ../..
+      dockerfile: docker/kestra/Dockerfile
+    container_name: kestra
+    command: server standalone
+    environment:
+      PROJECT_DIR: "/run/desktop/mnt/host/c/Users/AR SOLUTION/OneDrive/Desktop/aiprlane gcp/flight-quality-pipeline"
+      KESTRA_CONFIGURATION: |
+        datasources:
+          postgres:
+            url: jdbc:postgresql://kestra-postgres:5432/kestra
+            driverClassName: org.postgresql.Driver
+            username: kestra
+            password: k3str4
+        kestra:
+          server:
+            basicAuth:
+              enabled: false
+          repository:
+            type: postgres
+          storage:
+            type: local
+            local:
+              base-path: "/app/storage"
+          queue:
+            type: postgres
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../../orchestration/kestra/flows:/app/flows
+      - "../..:/run/desktop/mnt/host/c/Users/AR SOLUTION/OneDrive/Desktop/aiprlane gcp/flight-quality-pipeline"
+      - kestra_data:/app/storage
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - kestra-postgres
+    networks:
+      - pipeline_net
+
+volumes:
+  kestra_data:
+  kestra_postgres_data:
+
+networks:
+  pipeline_net:
+    external: true

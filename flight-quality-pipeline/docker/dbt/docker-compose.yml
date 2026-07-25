@@ -1,0 +1,17 @@
+services:
+  dbt:
+    build:
+      context: ../..
+      dockerfile: docker/dbt/Dockerfile
+    container_name: dbt
+    env_file:
+      - ../../.env
+    volumes:
+      - ../../credentials:/credentials:ro
+      - ../../dbt/air_quality_dbt:/usr/app/dbt/air_quality_dbt
+    networks:
+      - pipeline_net
+
+networks:
+  pipeline_net:
+    external: true

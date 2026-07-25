@@ -1,0 +1,31 @@
+name: 'air_quality_dbt'
+version: '1.0.0'
+config-version: 2
+
+profile: 'air_quality_dbt'
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  air_quality_dbt:
+    staging:
+      +materialized: view
+    marts:
+      +materialized: table
+      batch:
+        # OpenAQ-only marts (historical air quality).
+        +enabled: true
+      streaming:
+        # OpenSky-only marts (live flight tracking).
+        +enabled: true
+      correlation:
+        # Cross-domain marts joining OpenAQ + OpenSky.
+        +enabled: true

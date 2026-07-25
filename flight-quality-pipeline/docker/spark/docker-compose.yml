@@ -1,0 +1,35 @@
+services:
+  # Ad-hoc/scheduled batch jobs (bronze_to_silver.py, silver_to_bigquery.py).
+  # Spark is transformation-only here - bronze data lands in the bucket via dlt (OpenAQ) and the
+  # opensky-to-gcs Kafka consumer (OpenSky), not via Spark.
+  # Default command runs bronze_to_silver.py; override via:
+  #   docker compose run --rm spark-batch spark-submit ... /app/transformation/spark_jobs/silver_to_bigquery.py
+  spark-batch:
+    build:
+      context: ../..
+      dockerfile: docker/spark/Dockerfile
+    container_name: spark-batch
+    env_file:
+      - ../../.env
+    volumes:
+      - ../../credentials:/credentials:ro
+      # Persists Ivy-resolved --packages jars across runs/containers - without this, every
+      # fresh container re-downloads the full dependency tree (~100+ jars) from Maven Central,
+      # which is slow and exposes every run to transient network failures for no reason.
+      - spark_ivy_cache:/opt/bitnami/spark/.ivy2
+    command: >
+      spark-submit
+      --master local[*]
+      --jars /app/jars/gcs-connector-hadoop3-2.2.19.jar
+      --conf spark.hadoop.fs.gs.impl=com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem
+      --conf spark.hadoop.fs.AbstractFileSystem.gs.impl=com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS
+      /app/transformation/spark_jobs/bronze_to_silver.py
+    networks:
+      - pipeline_net
+
+volumes:
+  spark_ivy_cache:
+
+networks:
+  pipeline_net:
+    external: true

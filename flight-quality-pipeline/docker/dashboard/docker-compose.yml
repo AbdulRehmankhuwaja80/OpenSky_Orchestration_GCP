@@ -1,0 +1,18 @@
+services:
+  dashboard:
+    build:
+      context: ../..
+      dockerfile: docker/dashboard/Dockerfile
+    container_name: dashboard
+    env_file:
+      - ../../.env
+    volumes:
+      - ../../credentials:/credentials:ro
+    ports:
+      - "8501:8501"
+    networks:
+      - pipeline_net
+
+networks:
+  pipeline_net:
+    external: true

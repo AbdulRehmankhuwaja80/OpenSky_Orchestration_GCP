@@ -1,0 +1,17 @@
+services:
+  opensky-to-gcs:
+    build:
+      context: ../..
+      dockerfile: docker/opensky-consumer/Dockerfile
+    container_name: opensky-to-gcs
+    env_file:
+      - ../../.env
+    volumes:
+      - ../../credentials:/credentials:ro
+    restart: unless-stopped
+    networks:
+      - pipeline_net
+
+networks:
+  pipeline_net:
+    external: true

@@ -1,0 +1,8 @@
+version: 2
+
+sources:
+  - name: air_quality
+    dataset: "{{ env_var('BIGQUERY_DATASET') }}"
+    tables:
+      - name: openaq_processed
+      - name: opensky_processed

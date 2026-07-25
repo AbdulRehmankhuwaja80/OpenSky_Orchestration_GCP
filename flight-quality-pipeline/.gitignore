@@ -1,0 +1,31 @@
+# Environment & secrets
+.env
+credentials/*.json
+!credentials/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Spark
+*.crc
+_SUCCESS
+
+# dbt
+dbt/air_quality_dbt/target/
+dbt/air_quality_dbt/dbt_packages/
+dbt/air_quality_dbt/logs/
+
+# Kestra
+orchestration/kestra/storage/
+
+# OS
+.DS_Store
+Thumbs.db
+
+.bruin.yml
+logs/runs
+logs/*.log
+*.py[cod]

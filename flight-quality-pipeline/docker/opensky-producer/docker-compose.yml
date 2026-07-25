@@ -1,0 +1,15 @@
+services:
+  opensky-producer:
+    build:
+      context: ../..
+      dockerfile: docker/opensky-producer/Dockerfile
+    container_name: opensky-producer
+    env_file:
+      - ../../.env
+    restart: unless-stopped
+    networks:
+      - pipeline_net
+
+networks:
+  pipeline_net:
+    external: true
